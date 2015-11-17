@@ -36,9 +36,28 @@ import org.apache.brooklyn.util.net.Urls;
 import org.apache.brooklyn.util.stream.Streams;
 import org.apache.brooklyn.util.text.Strings;
 import org.apache.brooklyn.util.yaml.Yamls;
+import org.elasticsearch.search.SearchService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import alien4cloud.application.ApplicationService;
+import alien4cloud.component.CSARRepositorySearchService;
+import alien4cloud.component.repository.CsarFileRepository;
+import alien4cloud.deployment.DeploymentTopologyService;
+import alien4cloud.model.components.Csar;
+import alien4cloud.model.components.IndexedArtifactToscaElement;
+import alien4cloud.model.deployment.DeploymentTopology;
+import alien4cloud.model.topology.AbstractPolicy;
+import alien4cloud.model.topology.GenericPolicy;
+import alien4cloud.model.topology.NodeGroup;
+import alien4cloud.model.topology.NodeTemplate;
+import alien4cloud.model.topology.RelationshipTemplate;
+import alien4cloud.model.topology.Requirement;
+import alien4cloud.model.topology.Topology;
+import alien4cloud.tosca.ArchiveUploadService;
+import alien4cloud.tosca.parser.ParsingErrorLevel;
+import alien4cloud.tosca.parser.ParsingResult;
+import alien4cloud.tosca.parser.impl.advanced.GroupPolicyParser;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -177,19 +196,18 @@ public class ToscaPlanToSpecTransformer implements PlanToSpecTransformer {
         return createApplicationSpec(application.getName(), dt, id);
     }
 
-
-
     protected EntitySpec<? extends Application> createApplicationSpec(String name, Topology topo, String deploymentId) {
+        final CSARRepositorySearchService repositorySearchService = platform.getBean(CSARRepositorySearchService.class);
+        final CsarFileRepository csarFileRepository = platform.getBean(CsarFileRepository.class);
 
         // TODO we should support Relationships and have an OtherEntityMachineLocation ?
-        CSARRepositorySearchService repositorySearchService = platform.getBean(CSARRepositorySearchService.class);
         EntitySpec<BasicApplication> rootSpec = EntitySpec.create(BasicApplication.class).displayName(name);
 
         rootSpec.configure(TOSCA_ID, topo.getId());
         rootSpec.configure(TOSCA_DELEGATE_ID, topo.getDelegateId());
         rootSpec.configure(TOSCA_DEPLOYMENT_ID, deploymentId);
 
-        DependencyTree dt = new DependencyTree(topo, mgmt, repositorySearchService);
+        DependencyTree dt = new DependencyTree(topo, mgmt, repositorySearchService, csarFileRepository);
         dt.addSpecsAsChildrenOf(rootSpec);
 
         if (topo.getGroups()!=null) {
