@@ -613,7 +613,7 @@ public class Alien4CloudFacade implements ToscaFacade<Alien4CloudApplication> {
             this.relationshipTemplate = optionalRelationshipTemplate.get();
 
             String script = getScript(artifact);
-            return Optional.of(buildExportStatements(op, script).or(script));
+            return buildExportStatements(op, script).or(script);
         }
 
         @Override
